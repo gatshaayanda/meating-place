@@ -36,8 +36,8 @@ export default function PwaRegister() {
   }
 
   return <>
-    {offline && <div className="offlineBanner" role="status">Offline mode · saved pages and Firestore data remain available. New booking requests will sync when you reconnect.</div>}
-    {installable && <button className="pwaInstall" type="button" onClick={() => void install()}>Install Avram Kids</button>}
+    {offline && <div className="offlineBanner" role="status">Offline mode · saved pages remain available. Reconnect before sending a new request.</div>}
+    {installable && <button className="pwaInstall" type="button" onClick={() => void install()}>Install Meating Place</button>}
   </>;
 }
 
