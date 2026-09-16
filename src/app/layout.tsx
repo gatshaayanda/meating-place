@@ -5,10 +5,10 @@ import "./globals.css";
 import "./pwa.css";
 
 export const metadata: Metadata = {
-  title: "Avram Kids | Fun for every celebration",
-  description: "Book jumping castles, water slides, obstacle courses and interactive games for your next event.",
-  applicationName: "Avram Kids",
-  appleWebApp: { capable: true, title: "Avram Kids", statusBarStyle: "default" },
+  title: "THE MEATING PLACE | Car Wash & Braai",
+  description: "THE MEATING PLACE — CAR WASH & BRAAI. Let's Meat & Eat. Good food, good mood.",
+  applicationName: "THE MEATING PLACE",
+  appleWebApp: { capable: true, title: "Meating Place", statusBarStyle: "black-translucent" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
