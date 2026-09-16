@@ -1,6 +1,15 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import type { EquipmentItem } from "@/lib/equipment";
+
+export type OfferingRecord = {
+  id: string;
+  name: string;
+  category: "Food" | "Car Wash" | "Braai" | "Other";
+  detail: string;
+  price?: string;
+  active: boolean;
+  imageUrl?: string;
+};
 
 export type SpecialRecord = {
   id: string;
@@ -18,36 +27,29 @@ export type BookingRequestRecord = {
   name: string;
   phone: string;
   email: string;
-  date: string;
+  requestType: string;
+  date?: string;
   startTime?: string;
-  location: string;
-  equipment: string;
-  quantity: number;
-  guests?: number;
-  eventType: string;
+  details: string;
   notes: string;
   status: "New" | "Contacted" | "Confirmed" | "Completed" | "Cancelled";
 };
 
-const equipmentCollection = collection(db, "equipment");
+const offeringsCollection = collection(db, "offerings");
 const specialCollection = collection(db, "specials");
 const bookingCollection = collection(db, "bookingRequests");
 
-export async function getEquipment(): Promise<EquipmentItem[]> {
-  const snapshot = await getDocs(equipmentCollection);
-  return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<EquipmentItem, "id">) }));
+export async function getOfferings(): Promise<OfferingRecord[]> {
+  const snapshot = await getDocs(offeringsCollection);
+  return snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<OfferingRecord, "id">) }));
 }
 
-export async function saveEquipmentRecord(item: EquipmentItem) {
-  await setDoc(doc(db, "equipment", item.id), item);
+export async function saveOfferingRecord(item: OfferingRecord) {
+  await setDoc(doc(db, "offerings", item.id), item);
 }
 
-export async function deleteEquipmentRecord(id: string) {
-  await deleteDoc(doc(db, "equipment", id));
-}
-
-export async function seedEquipmentRecords(items: EquipmentItem[]) {
-  for (const item of items) await saveEquipmentRecord(item);
+export async function deleteOfferingRecord(id: string) {
+  await deleteDoc(doc(db, "offerings", id));
 }
 
 export async function getSpecials(): Promise<SpecialRecord[]> {
