@@ -1,6 +1,6 @@
-import "./meating.css";
-
 "use client";
+
+import "./meating.css";
 
 import Link from "next/link";
 
