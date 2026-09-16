@@ -1,35 +1,33 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
+
+    function isSignedIn() {
       return request.auth != null;
     }
 
     function isAdmin() {
-      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role
+          in ['owner', 'staff'];
     }
 
-    function validBookingRequest() {
-      return request.resource.data.keys().hasOnly([
-        'createdAt', 'name', 'phone', 'email', 'date', 'startTime',
-        'location', 'equipment', 'quantity', 'guests', 'eventType', 'notes',
-        'status'
-      ])
-      && request.resource.data.name is string
-      && request.resource.data.phone is string
-      && request.resource.data.date is string
-      && request.resource.data.location is string
-      && request.resource.data.equipment is string
-      && request.resource.data.quantity is int
-      && request.resource.data.quantity > 0
-      && request.resource.data.eventType is string
-      && request.resource.data.status == 'New';
+    function isOwner() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role
+          == 'owner';
     }
 
-    // Public catalogue. Customers can read published content, but only an
-    // authenticated Avram admin can create, edit or remove it.
-    match /equipment/{equipmentId} {
-      allow read: if resource.data.active == true || isAdmin();
+    match /admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update, delete: if false;
+    }
+
+    match /offerings/{offeringId} {
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
@@ -38,18 +36,47 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // Public booking intake. Customers can create a new request with only the
-    // allowed lead fields. Reading and changing requests is private.
+    match /homeMedia/{mediaId} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
     match /bookingRequests/{requestId} {
-      allow create: if validBookingRequest();
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'createdAt', 'name', 'phone', 'email', 'requestType',
+          'date', 'startTime', 'details', 'notes', 'status'
+        ])
+        && request.resource.data.keys().hasAll([
+          'createdAt', 'name', 'phone', 'email', 'requestType',
+          'details', 'notes', 'status'
+        ])
+        && request.resource.data.createdAt is string
+        && request.resource.data.name is string
+        && request.resource.data.phone is string
+        && request.resource.data.email is string
+        && request.resource.data.requestType is string
+        && request.resource.data.details is string
+        && request.resource.data.notes is string
+        && request.resource.data.status == 'New';
+
       allow read, update, delete: if isAdmin();
     }
 
-    // Role documents are provisioned out-of-band. A client may not grant
-    // itself admin access.
-    match /admins/{userId} {
-      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
-      allow write: if false;
+    match /customers/{customerId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /jobs/{jobId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /availability/{availabilityId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read, write: if isAdmin();
     }
 
     match /{document=**} {
