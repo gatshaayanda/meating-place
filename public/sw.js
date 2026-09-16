@@ -1,4 +1,4 @@
-const CACHE_NAME = "avram-kids-shell-v1";
+const CACHE_NAME = "meating-place-shell-v2";
 const APP_SHELL = ["/", "/book", "/offline", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
