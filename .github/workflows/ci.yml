@@ -1,10 +1,10 @@
-name: Avram Kids CI
+name: Meating Place CI
 
 on:
   push:
-    branches: [avram-v1, main]
+    branches: [main]
   pull_request:
-    branches: [avram-v1, main]
+    branches: [main]
 
 jobs:
   quality:
