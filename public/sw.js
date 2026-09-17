@@ -1,5 +1,5 @@
-const CACHE_NAME = "meating-place-shell-v2";
-const APP_SHELL = ["/", "/book", "/offline", "/icon.svg"];
+const CACHE_NAME = "meating-place-shell-v3";
+const APP_SHELL = ["/", "/book", "/offline", "/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
@@ -34,7 +34,7 @@ self.addEventListener("fetch", (event) => {
         void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
       }
       return response;
-    }).catch(() => caches.match(request).then((cached) => cached || caches.match("/offline"))));
+    }).catch(() => caches.match(request).then((cached) => cached || caches.match(url.pathname).then((pathCached) => pathCached || caches.match("/offline")))));
     return;
   }
 
