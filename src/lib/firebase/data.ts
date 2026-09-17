@@ -66,17 +66,20 @@ export async function deleteSpecialRecord(id: string) {
   await deleteDoc(doc(db, "specials", id));
 }
 
-async function ensureBookingSession() {
-  if (auth.currentUser) return auth.currentUser;
-  const credential = await signInAnonymously(auth);
-  return credential.user;
+async function tryAnonymousBookingSession() {
+  if (auth.currentUser) return;
+  try {
+    await signInAnonymously(auth);
+  } catch {
+    // The booking rules are intentionally public, so a customer must still
+    // be able to submit if anonymous Auth is disabled in the Firebase project.
+  }
 }
 
 export async function createBookingRequest(data: Omit<BookingRequestRecord, "id">) {
-  // Customer booking should never depend on a customer having an account.
-  // Use an anonymous Firebase Auth session so the write also works when the
-  // deployed Firestore rules require an authenticated caller.
-  await ensureBookingSession();
+  // Customer booking does not require an account. An anonymous Auth session is
+  // attempted first so this remains compatible with authenticated deployments.
+  await tryAnonymousBookingSession();
   const result = await addDoc(bookingCollection, data);
   return result.id;
 }
