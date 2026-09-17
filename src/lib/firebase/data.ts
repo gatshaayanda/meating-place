@@ -1,6 +1,5 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
-import { signInAnonymously } from "firebase/auth";
-import { db, auth } from "@/lib/firebase/client";
+import { db } from "@/lib/firebase/client";
 
 export type OfferingRecord = {
   id: string;
@@ -66,22 +65,16 @@ export async function deleteSpecialRecord(id: string) {
   await deleteDoc(doc(db, "specials", id));
 }
 
-async function tryAnonymousBookingSession() {
-  if (auth.currentUser) return;
-  try {
-    await signInAnonymously(auth);
-  } catch {
-    // The booking rules are intentionally public, so a customer must still
-    // be able to submit if anonymous Auth is disabled in the Firebase project.
-  }
-}
-
 export async function createBookingRequest(data: Omit<BookingRequestRecord, "id">) {
-  // Customer booking does not require an account. An anonymous Auth session is
-  // attempted first so this remains compatible with authenticated deployments.
-  await tryAnonymousBookingSession();
-  const result = await addDoc(bookingCollection, data);
-  return result.id;
+  // Customer requests are intentionally public. No Firebase Auth session is
+  // required here; Firestore rules control the public create boundary.
+  try {
+    const result = await addDoc(bookingCollection, data);
+    return result.id;
+  } catch (error) {
+    console.error("[Meating Place] booking request failed", error);
+    throw error;
+  }
 }
 
 export async function getBookingRequests(): Promise<BookingRequestRecord[]> {
