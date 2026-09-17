@@ -40,6 +40,7 @@ export default function BookForm() {
   const searchParams = useSearchParams();
   const initialType = useMemo(() => requestedType(searchParams.get("type")), [searchParams]);
   const [submitted, setSubmitted] = useState(false);
+  const [pendingSync, setPendingSync] = useState(false);
   const [reference, setReference] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -76,8 +77,10 @@ export default function BookForm() {
     }
 
     try {
+      const wasOffline = !navigator.onLine;
       const id = await createBookingRequest(request);
       setReference(id.slice(0, 8).toUpperCase());
+      setPendingSync(wasOffline);
       setSubmitted(true);
       event.currentTarget.reset();
     } catch (error) {
@@ -95,7 +98,7 @@ export default function BookForm() {
       <div className="formWrap">
         <div className="sectionHead"><span className="kicker">Plan your visit</span><h1 style={{fontSize:"clamp(2.6rem,6vw,4.5rem)"}}>Tell us what you&apos;re planning.</h1><p>Food, car wash, braai, catering or a private get-together — send the details once and the team can take it from there.</p></div>
         <div className="formCard">
-          {submitted ? <div className="confirm"><div className="confirmIcon" aria-hidden="true">🔥</div><h2>Request received</h2><p>Your request is in the Meating Place queue.</p><p><strong>Request #{reference}</strong></p><p>The team can now review what you need and contact you to confirm the details.</p><div className="actions" style={{justifyContent:"center"}}><Link className="button buttonPrimary" href="/">Return to THE MEATING PLACE</Link></div></div> : <form onSubmit={handleSubmit}><div className="formGrid">
+          {submitted ? <div className="confirm"><div className="confirmIcon" aria-hidden="true">🔥</div><h2>{pendingSync ? "Request saved" : "Request received"}</h2><p>{pendingSync ? "Your request is saved on this device and will sync with THE MEATING PLACE when you reconnect." : "Your request is in the Meating Place queue."}</p><p><strong>Request #{reference}</strong></p><p>{pendingSync ? "Keep this app installed/open on this device and reconnect when you can. Until sync completes, the team has not received the request yet." : "The team can now review what you need and contact you to confirm the details."}</p><div className="actions" style={{justifyContent:"center"}}><Link className="button buttonPrimary" href="/">Return to THE MEATING PLACE</Link><Link className="button buttonLight" href="/book">Send another request</Link></div></div> : <form onSubmit={handleSubmit}><div className="formGrid">
             <div className="field"><label htmlFor="name">Your name</label><input id="name" name="name" required autoComplete="name" /></div>
             <div className="field"><label htmlFor="phone">Phone / WhatsApp</label><input id="phone" name="phone" required type="tel" autoComplete="tel" /></div>
             <div className="field fieldFull"><label htmlFor="email">Email <span style={{fontWeight:400}}>(optional)</span></label><input id="email" name="email" type="email" autoComplete="email" /></div>
@@ -104,8 +107,8 @@ export default function BookForm() {
             <div className="field"><label htmlFor="startTime">Preferred time <span style={{fontWeight:400}}>(optional)</span></label><input id="startTime" name="startTime" type="time" /></div>
             <div className="field fieldFull"><label htmlFor="details">Tell us what you need</label><textarea id="details" name="details" required placeholder="For example: lunch for 12, a Saturday braai, car wash while I eat, birthday gathering…" /></div>
             <div className="field fieldFull"><label htmlFor="notes">Anything else? <span style={{fontWeight:400}}>(optional)</span></label><textarea id="notes" name="notes" placeholder="Useful details, timing, group size, special requests or questions" /></div>
-            <div className="field fieldFull"><button className="button buttonPrimary" type="submit" disabled={busy}>{busy ? "Sending request…" : "Send request"}</button></div>
-          </div>{error && <p role="alert" style={{color:"#b42318",lineHeight:1.6}}>{error}</p>}<p style={{color:"var(--muted)",fontSize:".84rem",lineHeight:1.6,marginBottom:0}}>This is a request, not a confirmed booking. The Meating Place team will contact you to confirm availability and details.</p></form>}
+            <div className="field fieldFull"><button className="button buttonPrimary" type="submit" disabled={busy}>{busy ? "Saving request…" : "Send request"}</button></div>
+          </div>{error && <p role="alert" style={{color:"#b42318",lineHeight:1.6}}>{error}</p>}<p style={{color:"var(--muted)",fontSize:".84rem",lineHeight:1.6,marginBottom:0}}>This is a request, not a confirmed booking. If you are offline, Firestore can keep the request on this device and sync it when the connection returns. The request is only considered received by THE MEATING PLACE after synchronization.</p></form>}
         </div>
       </div>
     </main>
