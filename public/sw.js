@@ -1,4 +1,4 @@
-const CACHE_NAME = "meating-place-shell-v4";
+const CACHE_NAME = "meating-place-shell-v5";
 const APP_SHELL = [
   "/",
   "/book",
@@ -34,7 +34,6 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // Next.js chunks are safe to cache after a successful network load.
   if (url.pathname.startsWith("/_next/")) {
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request).then((response) => {
@@ -48,8 +47,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation is network-first so visitors get current content online, with
-  // a cached route or offline page when the network is unavailable.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -68,6 +65,31 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Same-origin static assets use cache-first after they have been seen once.
+  // Public images, stylesheets, fonts and other static assets are safe to
+  // reuse offline. Cache them after first successful visit without touching
+  // Firebase/network API responses.
+  const isPublicAsset = [
+    "/meatingplace-assets/",
+    "/images/",
+    "/fonts/",
+  ].some((prefix) => url.pathname.startsWith(prefix))
+    || /\.(?:css|woff2?|ttf|otf|png|jpe?g|webp|svg|ico|avif)$/i.test(url.pathname);
+
+  if (isPublicAsset) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const network = fetch(request).then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        });
+        return cached || network;
+      }),
+    );
+    return;
+  }
+
   event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
 });
