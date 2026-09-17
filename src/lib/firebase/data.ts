@@ -1,5 +1,6 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { signInAnonymously } from "firebase/auth";
+import { db, auth } from "@/lib/firebase/client";
 
 export type OfferingRecord = {
   id: string;
@@ -65,7 +66,17 @@ export async function deleteSpecialRecord(id: string) {
   await deleteDoc(doc(db, "specials", id));
 }
 
+async function ensureBookingSession() {
+  if (auth.currentUser) return auth.currentUser;
+  const credential = await signInAnonymously(auth);
+  return credential.user;
+}
+
 export async function createBookingRequest(data: Omit<BookingRequestRecord, "id">) {
+  // Customer booking should never depend on a customer having an account.
+  // Use an anonymous Firebase Auth session so the write also works when the
+  // deployed Firestore rules require an authenticated caller.
+  await ensureBookingSession();
   const result = await addDoc(bookingCollection, data);
   return result.id;
 }
