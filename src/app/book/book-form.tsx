@@ -1,13 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { createBookingRequest } from "@/lib/firebase/data";
 
-const requestTypes = ["Food", "Car Wash", "Braai", "Catering / Group", "Private Event", "Other"];
+const requestTypes = ["Food", "Car Wash", "Braai", "Catering / Group", "Private Event", "Other"] as const;
+type RequestType = (typeof requestTypes)[number];
+
+function requestedType(value: string | null): RequestType | "" {
+  if (value === "food") return "Food";
+  if (value === "car-wash") return "Car Wash";
+  if (value === "braai") return "Braai";
+  if (value === "catering") return "Catering / Group";
+  if (value === "private-event") return "Private Event";
+  return "";
+}
 
 export default function BookForm() {
+  const searchParams = useSearchParams();
+  const initialType = useMemo(() => requestedType(searchParams.get("type")), [searchParams]);
   const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState("");
   const [error, setError] = useState("");
@@ -31,6 +44,12 @@ export default function BookForm() {
       status: "New" as const,
     };
 
+    if (!request.name || !request.phone || !request.requestType || !request.details) {
+      setError("Please complete your name, phone number, request type and what you need.");
+      setBusy(false);
+      return;
+    }
+
     try {
       const id = await createBookingRequest(request);
       setReference(id.slice(0, 8).toUpperCase());
@@ -53,8 +72,8 @@ export default function BookForm() {
             <div className="field"><label htmlFor="name">Your name</label><input id="name" name="name" required autoComplete="name" /></div>
             <div className="field"><label htmlFor="phone">Phone / WhatsApp</label><input id="phone" name="phone" required type="tel" autoComplete="tel" /></div>
             <div className="field fieldFull"><label htmlFor="email">Email <span style={{fontWeight:400}}>(optional)</span></label><input id="email" name="email" type="email" autoComplete="email" /></div>
-            <div className="field"><label htmlFor="requestType">What are you looking for?</label><select id="requestType" name="requestType" required defaultValue=""><option value="" disabled>Select one</option>{requestTypes.map((type) => <option key={type}>{type}</option>)}</select></div>
-            <div className="field"><label htmlFor="date">Date <span style={{fontWeight:400}}>(optional)</span></label><input id="date" name="date" type="date" /></div>
+            <div className="field"><label htmlFor="requestType">What are you looking for?</label><select id="requestType" name="requestType" required defaultValue={initialType}><option value="" disabled>Select one</option>{requestTypes.map((type) => <option key={type}>{type}</option>)}</select></div>
+            <div className="field"><label htmlFor="date">Date <span style={{fontWeight:400}}>(optional)</span></label><input id="date" name="date" type="date" min={new Date().toISOString().slice(0, 10)} /></div>
             <div className="field"><label htmlFor="startTime">Preferred time <span style={{fontWeight:400}}>(optional)</span></label><input id="startTime" name="startTime" type="time" /></div>
             <div className="field fieldFull"><label htmlFor="details">Tell us what you need</label><textarea id="details" name="details" required placeholder="For example: lunch for 12, a Saturday braai, car wash while I eat, birthday gathering…" /></div>
             <div className="field fieldFull"><label htmlFor="notes">Anything else? <span style={{fontWeight:400}}>(optional)</span></label><textarea id="notes" name="notes" placeholder="Useful details, timing, group size, special requests or questions" /></div>
