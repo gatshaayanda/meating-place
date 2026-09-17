@@ -14,24 +14,27 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => onAuthStateChanged(auth, async (nextUser) => {
-    setUser(nextUser);
-    if (!nextUser) {
-      setAuthorized(false);
-      setChecking(false);
-      return;
-    }
-    try {
-      const role = await getDoc(doc(db, "admins", nextUser.uid));
-      setAuthorized(role.exists() && ["owner", "staff"].includes(String(role.data().role)));
-      if (!role.exists()) await signOut(auth);
-    } catch {
-      setAuthorized(false);
-      await signOut(auth);
-    } finally {
-      setChecking(false);
-    }
-  }), []);
+  useEffect(() => {
+    return onAuthStateChanged(auth, async (nextUser) => {
+      setUser(nextUser);
+      if (!nextUser) {
+        setAuthorized(false);
+        setChecking(false);
+        return;
+      }
+      try {
+        const role = await getDoc(doc(db, "admins", nextUser.uid));
+        const allowed = role.exists() && ["owner", "staff"].includes(String(role.data().role));
+        setAuthorized(allowed);
+        if (!allowed) await signOut(auth);
+      } catch {
+        setAuthorized(false);
+        await signOut(auth);
+      } finally {
+        setChecking(false);
+      }
+    });
+  }, []);
 
   async function signIn(event: React.FormEvent) {
     event.preventDefault();
@@ -52,19 +55,11 @@ export default function AdminGate({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function logOut() {
-    setBusy(true);
-    try {
-      await signOut(auth);
-      setAuthorized(false);
-      setUser(null);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (checking) return <main className="adminPage"><div className="adminShell"><div className="emptyState"><div>🔐</div><h1>Opening Operations</h1><p>Checking access…</p></div></div></main>;
-  if (user && authorized) return <div>{children}<div style={{position:"fixed",right:16,bottom:16,zIndex:20}}><button className="button buttonLight" type="button" onClick={() => void logOut()} disabled={busy}>{busy ? "Signing out…" : "Sign out"}</button></div></div>;
+
+  if (user && authorized) {
+    return <div className="adminAuthorized"><div className="adminAccountBar"><span>Signed in as {user.email ?? "authorized staff"}</span><button className="button buttonLight" type="button" onClick={() => void signOut(auth)}>Sign out</button></div>{children}</div>;
+  }
 
   return <main className="adminPage"><div className="adminShell"><section className="adminPanel" style={{ maxWidth: 520, margin: "80px auto" }}><span className="kicker">THE MEATING PLACE · Operations</span><h1>Sign in to Operations</h1><p>Use an authorized owner or staff account to manage customer requests, offerings and specials.</p><form className="adminForm" onSubmit={signIn}><label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></label>{error && <p role="alert">{error}</p>}<button className="button buttonPrimary" type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button></form></section></div></main>;
 }
