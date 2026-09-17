@@ -26,6 +26,16 @@ function localDateValue() {
   return `${year}-${month}-${day}`;
 }
 
+function firebaseErrorDetails(error: unknown) {
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as { code?: unknown; message?: unknown };
+    const code = typeof candidate.code === "string" ? candidate.code : "unknown";
+    const message = typeof candidate.message === "string" ? candidate.message : "Unknown Firebase error";
+    return { code, message };
+  }
+  return { code: "unknown", message: String(error) };
+}
+
 export default function BookForm() {
   const searchParams = useSearchParams();
   const initialType = useMemo(() => requestedType(searchParams.get("type")), [searchParams]);
@@ -70,8 +80,10 @@ export default function BookForm() {
       setReference(id.slice(0, 8).toUpperCase());
       setSubmitted(true);
       event.currentTarget.reset();
-    } catch {
-      setError("We could not record your request right now. Please try again in a moment. If the problem continues, contact THE MEATING PLACE directly.");
+    } catch (error) {
+      const details = firebaseErrorDetails(error);
+      console.error("[Meating Place] booking request failed", { code: details.code, message: details.message, error });
+      setError(`We could not record your request right now (${details.code}). Please try again in a moment. If the problem continues, contact THE MEATING PLACE directly.`);
     } finally {
       setBusy(false);
     }
